@@ -1,0 +1,10 @@
+.git
+.env
+.env.backup
+.env.production
+node_modules
+vendor
+LodgeMate-Complete.zip
+storage/*.key
+storage/logs/*
+tests
