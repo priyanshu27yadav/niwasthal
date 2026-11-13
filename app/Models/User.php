@@ -15,14 +15,32 @@ class User extends Authenticatable
 
     protected $fillable = [
         'name', 'email', 'mobile', 'role', 'business_type', 'owner_id', 'password',
+        'bank_name', 'bank_account_holder', 'bank_account_number', 'bank_ifsc',
+        'upi_id', 'upi_qr_image', 'bank_verified_at',
     ];
 
     protected $hidden = ['password', 'remember_token'];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed',
+        'bank_verified_at'  => 'datetime',
+        'password'          => 'hashed',
     ];
+
+    public function hasBankDetails(): bool
+    {
+        return !empty($this->bank_account_number) && !empty($this->bank_ifsc);
+    }
+
+    public function hasUpi(): bool
+    {
+        return !empty($this->upi_id);
+    }
+
+    public function hasQr(): bool
+    {
+        return !empty($this->upi_qr_image) || $this->hasUpi();
+    }
 
     public function isOwner(): bool
     {

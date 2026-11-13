@@ -27,7 +27,7 @@ class PaymentController extends Controller
         // Collect property IDs that belong to this owner
         $propertyIds = $owner->properties()->pluck('id');
 
-        $query = Payment::with(['student', 'property'])
+        $query = Payment::with(['student.room', 'student.bed', 'property'])
             ->whereIn('property_id', $propertyIds)
             ->latest('paid_at');
 

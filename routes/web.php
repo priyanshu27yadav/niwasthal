@@ -133,6 +133,9 @@ Route::middleware(['role:owner'])->prefix('owner')->name('owner.')->group(functi
     // Settings
     Route::get('settings', [SettingController::class, 'index'])->name('settings.index');
     Route::post('settings', [SettingController::class, 'update'])->name('settings.update');
+    Route::post('settings/profile', [SettingController::class, 'updateProfile'])->name('settings.profile');
+    Route::post('settings/bank-otp/send', [SettingController::class, 'sendBankOtp'])->name('settings.bank-otp.send');
+    Route::post('settings/bank-details', [SettingController::class, 'updateBankDetails'])->name('settings.bank-details');
     Route::post('settings/password', [SettingController::class, 'updatePassword'])->name('settings.password');
 });
 

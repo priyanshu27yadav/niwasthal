@@ -726,6 +726,126 @@ class LodgeMateTest extends TestCase
             ->assertSee('Pay Now');
     }
 
+    public function test_owner_can_update_profile_details(): void
+    {
+        $owner = User::where('email', 'owner@lodgemate.com')->firstOrFail();
+
+        $response = $this->actingAs($owner)->post('/owner/settings/profile', [
+            'name'          => 'Raj Kumar Yadav',
+            'email'         => 'owner@lodgemate.com',
+            'mobile'        => '9876543219',
+            'business_type' => 'lodge',
+        ]);
+
+        $response->assertRedirect('/owner/settings');
+        $owner->refresh();
+        $this->assertEquals('Raj Kumar Yadav', $owner->name);
+        $this->assertEquals('9876543219', $owner->mobile);
+        $this->assertEquals('lodge', $owner->business_type);
+    }
+
+    public function test_owner_bank_details_require_otp_verification(): void
+    {
+        $owner = User::where('email', 'owner@lodgemate.com')->firstOrFail();
+
+        // 1. Request OTP
+        $sendRes = $this->actingAs($owner)->postJson('/owner/settings/bank-otp/send');
+        $sendRes->assertOk();
+        $sendRes->assertJson(['success' => true]);
+        $demoOtp = $sendRes->json('otp_demo');
+        $this->assertNotEmpty($demoOtp);
+
+        // 2. Attempt update with wrong OTP -> fails
+        $failRes = $this->actingAs($owner)->post('/owner/settings/bank-details', [
+            'otp'                 => '000000',
+            'bank_name'           => 'State Bank of India',
+            'bank_account_holder' => 'Raj Kumar',
+            'bank_account_number' => '123456789012',
+            'bank_ifsc'           => 'SBIN0001234',
+            'upi_id'              => 'rajkumar@oksbi',
+        ]);
+        $failRes->assertSessionHas('error');
+
+        // 3. Update with correct OTP -> success
+        $successRes = $this->actingAs($owner)->post('/owner/settings/bank-details', [
+            'otp'                 => $demoOtp,
+            'bank_name'           => 'State Bank of India',
+            'bank_account_holder' => 'Raj Kumar',
+            'bank_account_number' => '123456789012',
+            'bank_ifsc'           => 'SBIN0001234',
+            'upi_id'              => 'rajkumar@oksbi',
+        ]);
+        $successRes->assertRedirect('/owner/settings');
+        $owner->refresh();
+        $this->assertEquals('State Bank of India', $owner->bank_name);
+        $this->assertEquals('123456789012', $owner->bank_account_number);
+        $this->assertEquals('SBIN0001234', $owner->bank_ifsc);
+        $this->assertEquals('rajkumar@oksbi', $owner->upi_id);
+        $this->assertNotNull($owner->bank_verified_at);
+        $this->assertTrue($owner->hasBankDetails());
+        $this->assertTrue($owner->hasUpi());
+    }
+
+    public function test_student_pays_rent_with_payer_details_and_recorded_in_transactions(): void
+    {
+        $owner = User::where('email', 'owner@lodgemate.com')->firstOrFail();
+        $owner->update([
+            'bank_name'           => 'HDFC Bank',
+            'bank_account_number' => '5010023456789',
+            'bank_ifsc'           => 'HDFC0001234',
+            'upi_id'              => 'owner@okhdfc',
+        ]);
+
+        $student = Student::firstOrFail();
+        $studentUser = $student->user;
+
+        // Ensure there is an unpaid rent record
+        $rent = RentRecord::where('student_id', $student->id)->where('status', 'unpaid')->first();
+        if (!$rent) {
+            $rent = RentRecord::create([
+                'student_id'   => $student->id,
+                'student_name' => $student->name,
+                'property_id'  => $student->property_id,
+                'room_id'      => $student->room_id,
+                'bed_id'       => $student->bed_id,
+                'month'        => 10,
+                'year'         => 2026,
+                'rent_amount'  => 5000,
+                'late_fee'     => 0,
+                'total_amount' => 5000,
+                'paid_amount'  => 0,
+                'outstanding'  => 5000,
+                'due_date'     => now()->addDays(5),
+                'status'       => 'unpaid',
+            ]);
+        }
+
+        // Student pays rent with payer info
+        $this->actingAs($studentUser)->post('/student/payments/pay-rent', [
+            'rent_record_id'        => $rent->id,
+            'amount'                => 5000,
+            'payment_method_type'   => 'upi_id',
+            'payer_upi_id'          => 'studentpayer@okaxis',
+            'payer_phone'           => '9988776655',
+            'transaction_reference' => 'UTR987654321',
+        ])->assertRedirect();
+
+        // Check Payment table
+        $payment = \App\Models\Payment::where('student_id', $student->id)->latest('id')->firstOrFail();
+        $this->assertEquals('upi_id', $payment->payment_method_type);
+        $this->assertEquals('studentpayer@okaxis', $payment->payer_upi_id);
+        $this->assertEquals('9988776655', $payment->payer_phone);
+        $this->assertEquals('UTR987654321', $payment->transaction_reference);
+        $this->assertStringContainsString('owner@okhdfc', $payment->received_to_account);
+
+        // Owner views Transactions page
+        $transRes = $this->actingAs($owner)->get('/owner/payments');
+        $transRes->assertOk();
+        $transRes->assertSee('Transactions');
+        $transRes->assertSee('studentpayer@okaxis');
+        $transRes->assertSee('9988776655');
+    }
+
     public function test_auth_pages_have_no_cache_headers_and_419_graceful_redirect(): void
     {
         $loginRes = $this->get('/login');

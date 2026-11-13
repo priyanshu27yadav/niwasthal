@@ -27,8 +27,8 @@ WORKDIR /var/www/html
 COPY . .
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
-    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
-    && chown -R www-data:www-data storage bootstrap/cache \
+    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache public/uploads/qr \
+    && chown -R www-data:www-data storage bootstrap/cache public/uploads \
     && chmod +x docker/entrypoint.sh
 
 EXPOSE 8080

@@ -5,8 +5,8 @@ PORT="${PORT:-8080}"
 sed -ri "s/Listen 80/Listen ${PORT}/g" /etc/apache2/ports.conf
 sed -ri "s/:80>/:${PORT}>/g" /etc/apache2/sites-available/000-default.conf
 
-mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache
-chown -R www-data:www-data storage bootstrap/cache
+mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache public/uploads/qr
+chown -R www-data:www-data storage bootstrap/cache public/uploads
 
 # Ensure valid 32-byte Laravel APP_KEY (uses persistent RENDER_SECRET_KEY if provided)
 if [ -z "${APP_KEY:-}" ]; then

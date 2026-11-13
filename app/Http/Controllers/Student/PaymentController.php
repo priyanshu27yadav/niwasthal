@@ -29,6 +29,8 @@ class PaymentController extends Controller
     public function index(Request $request): View
     {
         $student = $this->getStudent();
+        $student->loadMissing(['property.owner', 'room', 'bed']);
+        $owner = $student->property?->owner;
 
         $payments = Payment::with(['allocations.rentRecord'])
             ->where('student_id', $student->id)
@@ -50,7 +52,9 @@ class PaymentController extends Controller
             'payments',
             'outstandingRecords',
             'totalOutstanding',
-            'razorpayConfigured'
+            'razorpayConfigured',
+            'student',
+            'owner'
         ));
     }
 
@@ -241,19 +245,21 @@ class PaymentController extends Controller
     }
 
     /**
-     * Record a local/sandbox rent payment when live Razorpay credentials are not configured yet.
+     * Record a direct rent payment made by the tenant to the owner's UPI / QR / Bank account.
      */
     public function payMonth(Request $request)
     {
-        if ($this->razorpay->isConfigured() || (!app()->environment(['local', 'testing']) && !config('app.debug'))) {
-            abort(403, 'Direct sandbox payment is disabled when live Razorpay gateway is active.');
-        }
-
         $student = $this->getStudent();
+        $student->loadMissing('property.owner');
+        $owner = $student->property?->owner;
 
         $validated = $request->validate([
-            'rent_record_id' => ['nullable', 'integer'],
-            'amount'         => ['nullable', 'numeric', 'min:1'],
+            'rent_record_id'        => ['nullable', 'integer'],
+            'amount'                => ['nullable', 'numeric', 'min:1'],
+            'payment_method_type'   => ['nullable', 'string', 'in:qr_code,upi_id,bank_transfer,cash'],
+            'payer_upi_id'          => ['nullable', 'string', 'max:100'],
+            'payer_phone'           => ['nullable', 'string', 'max:20'],
+            'transaction_reference' => ['nullable', 'string', 'max:100'],
         ]);
 
         $rentRecord = null;
@@ -274,19 +280,45 @@ class PaymentController extends Controller
 
         $amount = isset($validated['amount']) ? min((float) $validated['amount'], $maxPayable) : $maxPayable;
 
-        $payment = DB::transaction(function () use ($student, $rentRecord, $amount) {
+        $methodType = $request->input('payment_method_type', 'upi_id');
+        $method = match ($methodType) {
+            'qr_code', 'upi_id' => 'upi',
+            'bank_transfer'     => 'bank_transfer',
+            'cash'              => 'cash',
+            default             => 'upi',
+        };
+
+        $payerUpi = $request->input('payer_upi_id') ? trim($request->input('payer_upi_id')) : null;
+        $payerPhone = $request->input('payer_phone') ? trim($request->input('payer_phone')) : ($student->mobile ?? null);
+        $txnRef = $request->input('transaction_reference') ? trim($request->input('transaction_reference')) : null;
+
+        // Snapshot owner payout account that received payment
+        $receivedTo = match ($methodType) {
+            'qr_code'       => $owner && $owner->upi_id ? 'QR / UPI: ' . $owner->upi_id : ($owner && $owner->upi_qr_image ? 'Owner QR Poster' : 'Owner QR Code'),
+            'upi_id'        => $owner && $owner->upi_id ? 'UPI: ' . $owner->upi_id : 'Owner UPI Account',
+            'bank_transfer' => $owner && $owner->bank_name ? "Bank: {$owner->bank_name} (.." . substr($owner->bank_account_number ?? '', -4) . ")" : 'Owner Bank Account',
+            'cash'          => 'Cash to Property Owner / Manager',
+            default         => $owner && $owner->upi_id ? 'UPI: ' . $owner->upi_id : 'Owner Account',
+        };
+
+        $payment = DB::transaction(function () use ($student, $rentRecord, $amount, $method, $methodType, $payerUpi, $payerPhone, $txnRef, $receivedTo) {
             $payment = Payment::create([
-                'student_id'     => $student->id,
-                'property_id'    => $student->property_id,
-                'student_name'   => $student->name,
-                'amount'         => $amount,
-                'method'         => 'upi',
-                'receipt_number' => 'TMP-' . uniqid('', true),
-                'status'         => 'completed',
-                'paid_at'        => now(),
-                'notes'          => $rentRecord
-                    ? ('Sandbox rent payment for ' . $rentRecord->month_year)
-                    : 'Sandbox rent payment',
+                'student_id'            => $student->id,
+                'property_id'           => $student->property_id,
+                'student_name'          => $student->name,
+                'amount'                => $amount,
+                'method'                => $method,
+                'payment_method_type'   => $methodType,
+                'payer_upi_id'          => $payerUpi,
+                'payer_phone'           => $payerPhone,
+                'received_to_account'   => $receivedTo,
+                'transaction_reference' => $txnRef,
+                'receipt_number'        => 'TMP-' . uniqid('', true),
+                'status'                => 'completed',
+                'paid_at'               => now(),
+                'notes'                 => $rentRecord
+                    ? ('Rent payment for ' . $rentRecord->month_year)
+                    : 'Rent payment',
             ]);
 
             $payment->receipt_number = 'RCP-' . date('Ymd') . '-' . str_pad($payment->id, 4, '0', STR_PAD_LEFT);
@@ -299,7 +331,7 @@ class PaymentController extends Controller
 
         $label = $rentRecord ? $rentRecord->month_year : 'Outstanding Rent';
 
-        return back()->with('success', "Payment of ₹" . number_format($amount, 2) . " for {$label} completed on " . $payment->paid_at->format('d M Y, h:i A') . " (Receipt: {$payment->receipt_number}).");
+        return back()->with('success', "Payment of ₹" . number_format($amount, 2) . " for {$label} recorded successfully via " . $payment->method_label . " (Receipt: {$payment->receipt_number}).");
     }
 
     /**

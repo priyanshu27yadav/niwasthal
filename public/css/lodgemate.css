@@ -106,7 +106,9 @@ h1, h2, h3, h4, h5, h6, .lm-sidebar-brand, .niwas-display {
 /* Sidebar */
 .lm-sidebar {
     width: 268px;
-    min-height: 100vh;
+    height: 100vh;
+    max-height: 100vh;
+    overflow: hidden;
     background: linear-gradient(180deg, #090e1a 0%, #0f172a 60%, #131c36 100%);
     color: var(--lm-sidebar-text);
     position: fixed;
@@ -130,6 +132,7 @@ h1, h2, h3, h4, h5, h6, .lm-sidebar-brand, .niwas-display {
     text-decoration: none;
     font-weight: 800;
     font-size: 1.24rem;
+    flex-shrink: 0;
 }
 
 .lm-sidebar-brand .brand-icon {
@@ -148,8 +151,15 @@ h1, h2, h3, h4, h5, h6, .lm-sidebar-brand, .niwas-display {
 
 .lm-nav {
     padding: 0.85rem 0.85rem;
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.lm-sidebar-footer {
+    flex-shrink: 0;
 }
 
 .lm-nav::-webkit-scrollbar {

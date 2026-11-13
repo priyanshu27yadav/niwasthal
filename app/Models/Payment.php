@@ -13,6 +13,7 @@ class Payment extends Model
 
     protected $fillable = [
         'student_id', 'property_id', 'student_name', 'amount', 'method',
+        'payment_method_type', 'payer_upi_id', 'payer_phone', 'payer_account_info', 'received_to_account',
         'razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature',
         'transaction_reference', 'receipt_number', 'notes', 'status', 'paid_at',
     ];
@@ -39,10 +40,17 @@ class Payment extends Model
 
     public function getMethodLabelAttribute(): string
     {
+        if ($this->payment_method_type === 'qr_code') {
+            return 'QR Code Scan';
+        }
+        if ($this->payment_method_type === 'upi_id') {
+            return 'UPI ID / App';
+        }
+
         return match($this->method) {
             'cash' => 'Cash',
             'upi' => 'UPI',
-            'bank_transfer' => 'Bank Transfer',
+            'bank_transfer' => 'Bank Transfer (IMPS/NEFT)',
             'razorpay' => 'Online (Razorpay)',
             'cheque' => 'Cheque',
             default => ucfirst($this->method),

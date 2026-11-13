@@ -48,7 +48,7 @@
                 <i class="bi bi-receipt"></i> Rent & Dues
             </a>
             <a href="{{ route('owner.payments.index') }}" class="lm-nav-link {{ request()->routeIs('owner.payments.*') ? 'active' : '' }}">
-                <i class="bi bi-credit-card-fill"></i> Payments
+                <i class="bi bi-arrow-left-right"></i> Transactions
             </a>
             <a href="{{ route('owner.electricity.index') }}" class="lm-nav-link {{ request()->routeIs('owner.electricity.*') ? 'active' : '' }}">
                 <i class="bi bi-lightning-charge-fill"></i> Electricity Bills
@@ -75,7 +75,7 @@
             </a>
         </nav>
 
-        <div class="p-3 border-top border-secondary border-opacity-25">
+        <div class="p-3 border-top border-secondary border-opacity-25 lm-sidebar-footer">
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
                 <button type="submit" class="btn btn-outline-light btn-sm w-100 d-flex align-items-center justify-content-center gap-2">

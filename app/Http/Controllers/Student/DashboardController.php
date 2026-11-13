@@ -20,8 +20,8 @@ class DashboardController extends Controller
         /** @var \App\Models\User $user */
         $user = auth()->user();
 
-        // Eager load student with property, room, bed, and bed->room
-        $student = $user->student()->with(['property', 'room', 'bed', 'bed.room'])->firstOrFail();
+        // Eager load student with property.owner, room, bed, and bed->room
+        $student = $user->student()->with(['property.owner', 'room', 'bed', 'bed.room'])->firstOrFail();
 
         // All monthly rent bills (newest first) with payment allocations
         $rentRecords = RentRecord::where('student_id', $student->id)

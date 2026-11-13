@@ -10,7 +10,7 @@ class RentController extends Controller
 {
     public function index(): View
     {
-        $student = auth()->user()->student()->firstOrFail();
+        $student = auth()->user()->student()->with(['property.owner', 'room', 'bed'])->firstOrFail();
 
         $rentRecords = RentRecord::where('student_id', $student->id)
             ->with(['allocations.payment'])
@@ -29,7 +29,7 @@ class RentController extends Controller
 
     public function show(RentRecord $rent): View
     {
-        $student = auth()->user()->student()->firstOrFail();
+        $student = auth()->user()->student()->with(['property.owner', 'room', 'bed'])->firstOrFail();
 
         if ($rent->student_id !== $student->id) {
             abort(403, 'Unauthorized access to rent record.');

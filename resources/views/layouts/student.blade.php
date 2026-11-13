@@ -51,7 +51,7 @@
             </a>
         </nav>
 
-        <div class="p-3 border-top border-secondary border-opacity-25">
+        <div class="p-3 border-top border-secondary border-opacity-25 lm-sidebar-footer">
             <form action="{{ route('student.logout') }}" method="POST">
                 @csrf
                 <button type="submit" class="btn btn-outline-light btn-sm w-100 d-flex align-items-center justify-content-center gap-2">
