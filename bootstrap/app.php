@@ -25,26 +25,29 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        $exceptions->render(function (TokenMismatchException $e, Request $request) {
+        $handleSessionExpired = function (Request $request) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Session token expired. Please refresh and try again.',
+                    'message' => 'Session expired. Please try again.',
                 ], 419);
             }
 
-            $isStudentRoute = $request->is('student', 'student/*');
-            if ($isStudentRoute) {
-                $fallback = (auth('student')->check() || (auth('web')->check() && auth('web')->user()->isStudent()))
-                    ? route('student.dashboard')
-                    : route('student.otp');
-            } else {
-                $fallback = (auth('owner')->check() || (auth('web')->check() && auth('web')->user()->isOwner()))
-                    ? route('owner.dashboard')
-                    : route('login');
-            }
+            $fallback = $request->is('student', 'student/*')
+                ? route('student.otp')
+                : route('login');
 
-            return redirect($request->headers->get('referer') ?: $fallback)
-                ->with('error', 'Your session token refreshed. Please try your action again.');
+            return redirect($fallback)
+                ->with('error', 'Your session timed out. Please sign in now.');
+        };
+
+        $exceptions->render(function (\Symfony\Component\HttpKernel\Exception\HttpException $e, Request $request) use ($handleSessionExpired) {
+            if ($e->getStatusCode() === 419) {
+                return $handleSessionExpired($request);
+            }
+        });
+
+        $exceptions->render(function (TokenMismatchException $e, Request $request) use ($handleSessionExpired) {
+            return $handleSessionExpired($request);
         });
     })->create();

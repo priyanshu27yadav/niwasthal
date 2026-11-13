@@ -19,7 +19,10 @@ class StudentAuthController extends Controller
         if (Auth::guard('student')->check() || ($webUser && $webUser->isStudent())) {
             return redirect()->route('student.dashboard');
         }
-        return view('auth.owner-login', ['initialTab' => 'tenant']);
+        return response()
+            ->view('auth.owner-login', ['initialTab' => 'tenant'])
+            ->header('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate')
+            ->header('Pragma', 'no-cache');
     }
 
     public function sendOtp(Request $request)

@@ -9,16 +9,19 @@
             <div class="mx-auto mb-3 d-inline-flex align-items-center justify-content-center rounded-circle bg-info-subtle text-info" style="width: 64px; height: 64px; font-size: 1.75rem;">
                 <i class="bi bi-arrow-clockwise"></i>
             </div>
-            <h4 class="fw-bold text-dark mb-2">Session Refreshed</h4>
+            <h4 class="fw-bold text-dark mb-2">Session Timed Out</h4>
             <p class="text-muted small mb-4">
-                Your form token expired because the page sat open or another session changed. Click below to reload cleanly and continue.
+                Your sign-in session expired because the page was open for a while or cookies refreshed. Click below to load a fresh login form.
             </p>
             <div class="d-grid gap-2">
-                <a href="{{ url()->previous() !== url()->current() ? url()->previous() : route('home') }}" class="btn btn-primary fw-semibold py-2">
-                    <i class="bi bi-arrow-left-circle me-2"></i>Go Back &amp; Retry
+                <a href="{{ route('login') }}" class="btn btn-primary fw-semibold py-2">
+                    <i class="bi bi-box-arrow-in-right me-1"></i> Go to Login Page
+                </a>
+                <a href="{{ route('register') }}" class="btn btn-outline-primary fw-semibold py-2">
+                    <i class="bi bi-person-plus me-1"></i> Create Owner Account (PG / Lodge Only)
                 </a>
                 <a href="{{ route('home') }}" class="btn btn-light border fw-medium py-2">
-                    <i class="bi bi-house me-1"></i>Back to Home
+                    <i class="bi bi-house me-1"></i> Back to Home
                 </a>
             </div>
         </div>

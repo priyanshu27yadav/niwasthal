@@ -26,7 +26,10 @@ class OwnerAuthController extends Controller
             }
         }
 
-        return view('auth.owner-login', compact('initialTab'));
+        return response()
+            ->view('auth.owner-login', compact('initialTab'))
+            ->header('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate')
+            ->header('Pragma', 'no-cache');
     }
 
     public function login(Request $request)
@@ -52,7 +55,10 @@ class OwnerAuthController extends Controller
 
     public function showRegister()
     {
-        return view('auth.owner-register');
+        return response()
+            ->view('auth.owner-register')
+            ->header('Cache-Control', 'no-cache, no-store, max-age=0, must-revalidate')
+            ->header('Pragma', 'no-cache');
     }
 
     public function register(Request $request)

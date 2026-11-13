@@ -725,4 +725,19 @@ class LodgeMateTest extends TestCase
             ->assertSee('Receipt')
             ->assertSee('Pay Now');
     }
+
+    public function test_auth_pages_have_no_cache_headers_and_419_graceful_redirect(): void
+    {
+        $loginRes = $this->get('/login');
+        $loginRes->assertOk();
+        $this->assertStringContainsString('no-cache', (string) $loginRes->headers->get('Cache-Control'));
+
+        $registerRes = $this->get('/register');
+        $registerRes->assertOk();
+        $this->assertStringContainsString('no-cache', (string) $registerRes->headers->get('Cache-Control'));
+
+        $otpRes = $this->get('/student/login');
+        $otpRes->assertOk();
+        $this->assertStringContainsString('no-cache', (string) $otpRes->headers->get('Cache-Control'));
+    }
 }
