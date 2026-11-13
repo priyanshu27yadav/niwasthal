@@ -112,8 +112,13 @@
 
                 <div x-show="error" class="alert alert-danger border-0 small py-2" x-text="error" style="display: none;"></div>
                 <div x-show="message" class="alert alert-success border-0 small py-2" x-text="message" style="display: none;"></div>
-                <div x-show="debugOtp" class="alert alert-info border-0 small py-2" style="display: none;">
-                    <strong>Dev Mode OTP:</strong> <span class="font-monospace fw-bold" x-text="debugOtp"></span>
+                <div x-show="debugOtp" class="alert alert-warning border-0 small py-2 d-flex align-items-center justify-content-between" style="display: none;">
+                    <div>
+                        <i class="bi bi-info-circle-fill me-1"></i>
+                        <strong>Demo Mode OTP:</strong> <span class="font-monospace fw-bold fs-6" x-text="debugOtp"></span>
+                        <div class="text-muted" style="font-size: 0.72rem;">Live SMS/WhatsApp gateway not configured yet &bull; OTP auto-filled below</div>
+                    </div>
+                    <button type="button" class="btn btn-xs btn-outline-dark" @click="otp = debugOtp">Auto-Fill</button>
                 </div>
 
                 <!-- Step 1: Enter Mobile -->
@@ -192,7 +197,10 @@ function unifiedLogin(defaultTab) {
                 } else {
                     this.step = 2;
                     this.message = data.message || 'OTP sent!';
-                    if (data.otp_dev || data.debug_otp) this.debugOtp = data.otp_dev || data.debug_otp;
+                    if (data.otp_dev || data.debug_otp) {
+                        this.debugOtp = data.otp_dev || data.debug_otp;
+                        this.otp = this.debugOtp;
+                    }
                 }
             } catch (e) {
                 this.error = 'Network error. Please try again.';

@@ -96,7 +96,10 @@ function studentOtpLogin() {
                 } else {
                     this.step = 2;
                     this.message = data.message || 'OTP sent!';
-                    if (data.otp_dev || data.debug_otp) this.debugOtp = data.otp_dev || data.debug_otp;
+                    if (data.otp_dev || data.debug_otp) {
+                        this.debugOtp = data.otp_dev || data.debug_otp;
+                        this.otp = this.debugOtp;
+                    }
                 }
             } catch (e) {
                 this.error = 'Network error. Please try again.';

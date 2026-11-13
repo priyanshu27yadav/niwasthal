@@ -75,11 +75,14 @@ class StudentAuthController extends Controller
             // Log but don't fail — dev mode shows OTP
         }
 
+        $whatsappConfigured = !empty(config('services.whatsapp.api_token')) && !empty(config('services.whatsapp.phone_number_id'));
+
         return response()->json([
-            'success' => true,
-            'message' => 'OTP sent to your WhatsApp/SMS.',
-            // Remove in production:
-            'otp_dev' => config('app.debug') ? $otp : null,
+            'success'  => true,
+            'message'  => $whatsappConfigured
+                ? 'OTP sent to your WhatsApp.'
+                : "Demo OTP generated: {$otp} (SMS/WhatsApp gateway not configured yet).",
+            'otp_dev'  => !$whatsappConfigured || config('app.debug') ? $otp : null,
         ]);
     }
 
